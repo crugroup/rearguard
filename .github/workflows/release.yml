@@ -1,0 +1,75 @@
+name: release
+
+# Manual. Tests first (the same workflow CI runs), then tag and release the commit it ran on.
+# Leave `version` empty to bump the patch of the latest X.Y.Z tag (0.1.0 if there is none).
+# Tags and versions have no `v` prefix.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, X.Y.Z (empty: bump the patch of the latest release)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Release from main only, not from $GITHUB_REF"
+            exit 1
+          fi
+
+  tests:
+    needs: guard
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create the tag and the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          latest=$(git tag --list --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sed -n 1p || true)
+          if [ -n "$INPUT_VERSION" ]; then
+            next="$INPUT_VERSION"
+            if ! printf '%s' "$next" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::Version must be X.Y.Z, without a v prefix, got '$INPUT_VERSION'"
+              exit 1
+            fi
+          elif [ -z "$latest" ]; then
+            next="0.1.0"
+          else
+            IFS=. read -r major minor patch <<< "$latest"
+            next="$major.$minor.$((patch + 1))"
+          fi
+          if git rev-parse -q --verify "refs/tags/$next" > /dev/null; then
+            echo "::error::$next already exists"
+            exit 1
+          fi
+          if [ -n "$latest" ]; then
+            highest=$(printf '%s\n%s\n' "$latest" "$next" | sort -V | sed -n '$p')
+            if [ "$highest" != "$next" ]; then
+              echo "::error::$next is older than the latest release $latest"
+              exit 1
+            fi
+          fi
+          echo "Releasing $next (latest was ${latest:-none})"
+          gh release create "$next" --target "$GITHUB_SHA" --title "$next" --generate-notes
