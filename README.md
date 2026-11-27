@@ -1,8 +1,8 @@
 # rear-guard
 
-[![tests](https://github.com/crugroup/rear-guard/actions/workflows/tests.yml/badge.svg)](https://github.com/crugroup/rear-guard/actions/workflows/tests.yml)
-[![Python: default and latest](https://img.shields.io/badge/python-runner%20default%20%2B%20latest-blue)](.github/workflows/tests.yml)
-[![Tested on Linux, macOS and Windows](https://img.shields.io/badge/tested%20on-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](.github/workflows/tests.yml)
+[![CI](https://github.com/crugroup/rear-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/crugroup/rear-guard/actions/workflows/ci.yml)
+[![Python: default and latest](https://img.shields.io/badge/python-runner%20default%20%2B%20latest-blue)](.github/workflows/ci.yml)
+[![Tested on Linux, macOS and Windows](https://img.shields.io/badge/tested%20on-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](.github/workflows/ci.yml)
 [![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](hooks)
 [![model calls: zero](https://img.shields.io/badge/model%20calls-zero-brightgreen)](docs/explanation/why-the-guards-exist.md)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)

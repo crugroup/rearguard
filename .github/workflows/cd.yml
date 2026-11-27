@@ -1,4 +1,4 @@
-name: release
+name: CD
 
 # Manual. Tests first (the same workflow CI runs), then tag and release the commit it ran on.
 # Leave `version` empty to bump the patch of the latest X.Y.Z tag (0.1.0 if there is none).
@@ -30,7 +30,7 @@ jobs:
 
   tests:
     needs: guard
-    uses: ./.github/workflows/tests.yml
+    uses: ./.github/workflows/ci.yml
 
   release:
     needs: tests

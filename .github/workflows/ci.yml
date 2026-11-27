@@ -1,7 +1,7 @@
-name: tests
+name: CI
 
 on:
-  workflow_call: # reused by release.yml
+  workflow_call: # reused by cd.yml
   pull_request:
   push:
     branches: [main]
