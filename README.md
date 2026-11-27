@@ -21,11 +21,17 @@ cd rear-guard
 
 ## What they guard against
 
-| Hook | Event | Blocks | Instead offers |
-|---|---|---|---|
-| [`cache-expiry-guard.py`](hooks/cache-expiry-guard.py) | `UserPromptSubmit` | The first prompt to a session of 150k tokens or more that has been idle for over an hour, when the prompt cache has expired and the whole context would be written again at twice the input price. | A cost comparison and a handoff note to start a new session from. Any prompt sent within 10 minutes goes through. |
-| [`archive-read-guard.py`](hooks/archive-read-guard.py) | `PreToolUse` | The first whole read of another session's transcript (200 kB or more). | The path of that session's handoff note. Repeat the call and it goes through for 30 minutes. |
-| [`handoff.py`](hooks/handoff.py) | none, imported by the two above | Nothing. | Builds the handoff note from a transcript: a few thousand tokens to read instead of the whole session. |
+- **[`cache-expiry-guard.py`](hooks/cache-expiry-guard.py)** (`UserPromptSubmit`) holds the first
+  prompt sent to a session of 150k tokens or more that has been idle for over an hour. The prompt
+  cache has expired, so the whole context would be written again at twice the input price. It
+  shows the cost against a new session and a handoff note to start that session from; any
+  prompt sent within 10 minutes goes through.
+- **[`archive-read-guard.py`](hooks/archive-read-guard.py)** (`PreToolUse`) denies the first whole
+  read of another session's transcript (200 kB or more) and names that session's handoff note
+  instead. Repeat the call and it goes through for 30 minutes.
+
+Both build the note with [`handoff.py`](hooks/handoff.py), which is not a hook itself: it reads
+a transcript, with no model call, into a few thousand tokens instead of the whole session.
 
 ## Register the guards
 
