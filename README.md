@@ -1,0 +1,74 @@
+# rear-guard
+
+[![tests](https://github.com/crugroup/rear-guard/actions/workflows/tests.yml/badge.svg)](https://github.com/crugroup/rear-guard/actions/workflows/tests.yml)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](hooks)
+[![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](hooks)
+[![model calls: zero](https://img.shields.io/badge/model%20calls-zero-brightgreen)](docs/explanation/why-the-guards-exist.md)
+[![License: GPL v3 or later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
+[![Claude Code hooks](https://img.shields.io/badge/Claude%20Code-hooks-d97757)](https://docs.claude.com/en/docs/claude-code/hooks)
+[![docs: Diátaxis](https://img.shields.io/badge/docs-Di%C3%A1taxis-informational)](https://diataxis.fr/)
+
+**Two Claude Code hooks that stop long sessions from silently re-buying their whole context.**
+They block one expensive prompt, once, and hand you a short note to start a fresh session from.
+Standard library only, no model call, and they never get in your way when they cannot help.
+
+```bash
+git clone https://github.com/crugroup/rear-guard
+cd rear-guard
+./install    # then register the two guards, see below
+```
+
+## What they guard against
+
+| Hook | Event | Blocks | Instead offers |
+|---|---|---|---|
+| [`cache-expiry-guard.py`](hooks/cache-expiry-guard.py) | `UserPromptSubmit` | The first prompt to a session of 150k tokens or more that has been idle for over an hour, when the prompt cache has expired and the whole context would be written again at twice the input price. | A cost comparison and a handoff note to start a new session from. Any prompt sent within 10 minutes goes through. |
+| [`archive-read-guard.py`](hooks/archive-read-guard.py) | `PreToolUse` | The first whole read of another session's transcript (200 kB or more). | The path of that session's handoff note. Repeat the call and it goes through for 30 minutes. |
+| [`handoff.py`](hooks/handoff.py) | none, imported by the two above | Nothing. | Builds the handoff note from a transcript: a few thousand tokens to read instead of the whole session. |
+
+## Register the guards
+
+Add to `~/.claude/settings.json`, merged with the hooks you already have, then restart Claude Code:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|mcp__ccd_session_mgmt__list_events|mcp__ccd_session_mgmt__export_transcript",
+        "hooks": [{ "type": "command", "command": "~/.claude/hooks/archive-read-guard.py", "timeout": 10 }]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [{ "type": "command", "command": "~/.claude/hooks/cache-expiry-guard.py", "timeout": 10 }]
+      }
+    ]
+  }
+}
+```
+
+Requires Python 3.9 or later on `PATH` as `python3`. Claude Code only.
+
+## Documentation
+
+Organised by what you need, following [Diátaxis](https://diataxis.fr/).
+
+| | Learning | Working |
+|---|---|---|
+| **Practical** | [Tutorial: watch the cache guard block a prompt](docs/tutorials/watch-a-guard-fire.md) | How-to: [install and register](docs/how-to/install-and-register.md), [generate a handoff note](docs/how-to/generate-a-handoff-note.md), [tune the thresholds](docs/how-to/tune-the-thresholds.md), [measure what the guard saved](docs/how-to/measure-the-savings.md), [find out why a guard stayed silent](docs/how-to/debug-a-silent-guard.md) |
+| **Theoretical** | [Explanation: why the guards exist](docs/explanation/why-the-guards-exist.md) | Reference: [hooks](docs/reference/hooks.md), [event log](docs/reference/event-log.md), [handoff note](docs/reference/handoff-note.md) |
+
+## Development
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Each test runs the hook as Claude Code does, one process per event with the event as JSON on
+stdin, in a throwaway `HOME`. Nothing touches your real `~/.claude`.
+
+## Licence
+
+GNU General Public Licence, version 3 or (at your option) any later version. See
+[LICENSE](LICENSE); each source file carries `SPDX-License-Identifier: GPL-3.0-or-later`.
