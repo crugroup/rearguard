@@ -65,7 +65,7 @@ Organised by what you need, following [Diátaxis](https://diataxis.fr/).
 
 | | Learning | Working |
 |---|---|---|
-| **Practical** | [Tutorial: watch the cache guard block a prompt](docs/tutorials/watch-a-guard-fire.md) | How-to: [install and register](docs/how-to/install-and-register.md), [generate a handoff note](docs/how-to/generate-a-handoff-note.md), [tune the thresholds](docs/how-to/tune-the-thresholds.md), [measure what the guard saved](docs/how-to/measure-the-savings.md), [find out why a guard stayed silent](docs/how-to/debug-a-silent-guard.md) |
+| **Practical** | [Tutorial: watch the cache guard block a prompt](docs/tutorials/watch-a-guard-fire.md) | How-to: [install and register](docs/how-to/install-and-register.md), [generate a handoff note](docs/how-to/generate-a-handoff-note.md), [tune the thresholds](docs/how-to/tune-the-thresholds.md), [measure what the guard saved](docs/how-to/measure-the-savings.md), [find out why a guard stayed silent](docs/how-to/debug-a-silent-guard.md), [cut a release](docs/how-to/cut-a-release.md) |
 | **Theoretical** | [Explanation: why the guards exist](docs/explanation/why-the-guards-exist.md) | Reference: [hooks](docs/reference/hooks.md), [event log](docs/reference/event-log.md), [handoff note](docs/reference/handoff-note.md) |
 
 ## Development
