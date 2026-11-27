@@ -1,6 +1,7 @@
 name: tests
 
 on:
+  workflow_call: # reused by release.yml
   pull_request:
   push:
     branches: [main]
