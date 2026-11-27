@@ -1,6 +1,6 @@
 # Hooks reference
 
-Three Python files in `hooks/`. Python 3.9 or later, standard library only, no model call.
+Three Python files in `hooks/`. Python 3, standard library only, no model call.
 Claude Code only.
 
 ```mermaid

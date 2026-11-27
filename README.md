@@ -1,7 +1,8 @@
 # rear-guard
 
 [![tests](https://github.com/crugroup/rear-guard/actions/workflows/tests.yml/badge.svg)](https://github.com/crugroup/rear-guard/actions/workflows/tests.yml)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](hooks)
+[![Python: default and latest](https://img.shields.io/badge/python-runner%20default%20%2B%20latest-blue)](.github/workflows/tests.yml)
+[![Tested on Linux, macOS and Windows](https://img.shields.io/badge/tested%20on-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](.github/workflows/tests.yml)
 [![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](hooks)
 [![model calls: zero](https://img.shields.io/badge/model%20calls-zero-brightgreen)](docs/explanation/why-the-guards-exist.md)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
@@ -48,7 +49,9 @@ Add to `~/.claude/settings.json`, merged with the hooks you already have, then r
 }
 ```
 
-Requires Python 3.9 or later on `PATH` as `python3`. Claude Code only.
+Requires Python 3 on `PATH` as `python3`. CI runs the tests on Linux, macOS and Windows, each with
+the runner's default Python and the latest release. `./install` is for macOS and Linux; see
+[install and register](docs/how-to/install-and-register.md#on-windows) for Windows. Claude Code only.
 
 ## Documentation
 
@@ -66,7 +69,7 @@ python3 -m unittest discover -s tests -v
 ```
 
 Each test runs the hook as Claude Code does, one process per event with the event as JSON on
-stdin, in a throwaway `HOME`. Nothing touches your real `~/.claude`.
+stdin, in a throwaway home directory. Nothing touches your real `~/.claude`.
 
 ## Licence
 

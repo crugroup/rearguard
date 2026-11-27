@@ -2,7 +2,7 @@
 
 You will fake an expired, large session in a throwaway directory, send the cache guard the
 event Claude Code would send, and read what it does. It takes five minutes, needs only
-Python 3.9+, and touches nothing in your real `~/.claude`.
+Python 3, and touches nothing in your real `~/.claude`.
 
 Run all commands from the root of the repository, in one shell.
 

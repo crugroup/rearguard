@@ -45,3 +45,17 @@ Remove the two entries from `settings.json`, then:
 
 This removes only links that point into this clone. Logs and notes in `~/.claude/cache-guard/`,
 `~/.claude/archive-guard/` and `~/.claude/handoffs/` stay; delete them if you want.
+
+## On Windows
+
+CI runs the tests on Windows, but `./install` is a bash script and Windows ignores the
+`#!/usr/bin/env python3` line, so link and register by hand:
+
+1. Copy the three files of `hooks/` together into `%USERPROFILE%\.claude\hooks\`.
+2. Register each guard as in step 2, with the interpreter in the command, for example
+   `"command": "python %USERPROFILE%\\.claude\\hooks\\cache-expiry-guard.py"`.
+
+The archive guard's session-tool lookup reads the Claude desktop app's session folder at its
+macOS location only; on Windows the guard still covers `Read` of transcripts. The hooks
+have not been installed on Windows by the maintainers; only the tests run there, so adapt the
+paths to your shell if needed.
