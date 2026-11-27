@@ -10,14 +10,22 @@ permissions:
 
 jobs:
   tests:
-    runs-on: ubuntu-24.04 # ubuntu-latest has no Python 3.9
+    name: ${{ matrix.os }}, ${{ matrix.python }} Python
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.13"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # default: the Python the runner image ships, used as it comes.
+        # latest: the newest stable release, installed by setup-python.
+        python: [default, latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - if: matrix.python == 'latest'
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-      - run: python -m unittest discover -s tests -v
+          python-version: "3.x"
+      - name: Show the interpreter
+        run: ${{ runner.os == 'Windows' && 'python' || 'python3' }} --version
+      - name: Run the tests
+        run: ${{ runner.os == 'Windows' && 'python' || 'python3' }} -m unittest discover -s tests -v
