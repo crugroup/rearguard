@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# rear-guard install: symlink the hooks into ~/.claude/hooks/. Registering them in
+# rearguard install: symlink the hooks into ~/.claude/hooks/. Registering them in
 # settings.json stays manual; see docs/how-to/install-and-register.md.
 set -euo pipefail
 

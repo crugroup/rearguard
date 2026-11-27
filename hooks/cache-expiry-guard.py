@@ -40,7 +40,7 @@ MAX_LOG_BYTES = 25 * 1024 * 1024  # the log is trimmed to its newest half when i
 LOG_README_TEXT = """\
 # cache-guard event log
 
-Written by `cache-expiry-guard.py` (rear-guard). `events.jsonl` has one JSON
+Written by `cache-expiry-guard.py` (rearguard). `events.jsonl` has one JSON
 object per line, oldest first. It is trimmed to its newest half whenever it would pass 25 MiB,
 so the oldest events disappear first. This file is rewritten by the hook; do not edit it.
 

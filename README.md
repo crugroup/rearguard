@@ -1,6 +1,6 @@
-# rear-guard
+# rearguard
 
-[![CI](https://github.com/crugroup/rear-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/crugroup/rear-guard/actions/workflows/ci.yml)
+[![CI](https://github.com/crugroup/rearguard/actions/workflows/ci.yml/badge.svg)](https://github.com/crugroup/rearguard/actions/workflows/ci.yml)
 [![Python: default and latest](https://img.shields.io/badge/python-runner%20default%20%2B%20latest-blue)](.github/workflows/ci.yml)
 [![Tested on Linux, macOS and Windows](https://img.shields.io/badge/tested%20on-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](.github/workflows/ci.yml)
 [![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](hooks)
@@ -14,8 +14,8 @@ They block one expensive prompt, once, and hand you a short note to start a fres
 Standard library only, no model call, and they never get in your way when they cannot help.
 
 ```bash
-git clone https://github.com/crugroup/rear-guard
-cd rear-guard
+git clone https://github.com/crugroup/rearguard
+cd rearguard
 ./install    # then register the two guards, see below
 ```
 
