@@ -1,9 +1,14 @@
 name: CD
 
-# Manual. Tests first (the same workflow CI runs), then tag and release the commit it ran on.
-# Leave `version` empty to bump the patch of the latest X.Y.Z tag (0.1.0 if there is none).
-# Tags and versions have no `v` prefix.
+# Every push to main whose CI run succeeds is tagged and released, as the commit CI tested.
+# The version is the patch bump of the latest X.Y.Z tag (0.1.0 if there is none).
+# For a minor or major bump, run this workflow by hand on main and give the version; it runs
+# the tests first. Tags and versions have no `v` prefix.
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
@@ -20,6 +25,7 @@ concurrency:
 
 jobs:
   guard:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -33,13 +39,24 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   release:
-    needs: tests
+    needs: [tests]
+    # A manual run needs its own tests to pass. An automatic run needs the CI run that
+    # triggered it to have passed on a push, not on a pull request.
+    if: >-
+      ${{ !cancelled() && (
+        needs.tests.result == 'success' ||
+        (github.event_name == 'workflow_run'
+          && github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      TESTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.TESTED_SHA }}
           fetch-depth: 0
       - name: Create the tag and the release
         env:
@@ -47,6 +64,13 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
+          # CI runs finish out of order. Release only the tip of main, so that a newer
+          # commit never gets an older version.
+          git fetch --quiet origin main
+          if [ "$(git rev-parse origin/main)" != "$TESTED_SHA" ]; then
+            echo "::notice::$TESTED_SHA is no longer the tip of main; the newer commit releases itself."
+            exit 0
+          fi
           latest=$(git tag --list --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sed -n 1p || true)
           if [ -n "$INPUT_VERSION" ]; then
             next="$INPUT_VERSION"
@@ -71,5 +95,5 @@ jobs:
               exit 1
             fi
           fi
-          echo "Releasing $next (latest was ${latest:-none})"
-          gh release create "$next" --target "$GITHUB_SHA" --title "$next" --generate-notes
+          echo "Releasing $next (latest was ${latest:-none}) from $TESTED_SHA"
+          gh release create "$next" --target "$TESTED_SHA" --title "$next" --generate-notes
