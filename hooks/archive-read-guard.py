@@ -38,7 +38,7 @@ SESSION_TOOLS = (
 def transcript_for_app_session(session_id: str) -> Path | None:
     """Map the app's local_<id> session to its Claude Code transcript."""
     for meta in APP_SESSIONS.expanduser().glob(f"*/*/{session_id}.json"):
-        data = json.loads(meta.read_text())
+        data = json.loads(meta.read_text(encoding="utf-8"))
         cli = data.get("lastAssistantCliSessionId") or data.get("cliSessionId")
         if cli:
             return next(PROJECTS.glob(f"*/{cli}.jsonl"), None)
@@ -76,7 +76,7 @@ def decide(event: dict) -> dict | None:
     if marker.exists() and time.time() - marker.stat().st_mtime < GRACE_SECONDS:
         return None
     note = write_handoff(transcript)
-    marker.write_text(str(time.time()))
+    marker.write_text(str(time.time()), encoding="utf-8")
 
     reason = (
         f"This reads a past session ({size // 1000} kB transcript). "
@@ -96,7 +96,7 @@ def decide(event: dict) -> dict | None:
 def main() -> None:
     """Answer one hook event from stdin; stay silent on anything this guard does not expect."""
     try:
-        output = decide(json.load(sys.stdin))
+        output = decide(json.loads(sys.stdin.buffer.read().decode("utf-8")))
     except Exception as error:  # noqa: BLE001
         # Called by a harness that does not speak this protocol, or a broken guard: never
         # get in the way of the call. Say why only when asked to.

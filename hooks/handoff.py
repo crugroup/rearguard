@@ -70,7 +70,7 @@ def read(transcript: Path) -> dict:
     """Collect the parts of the transcript a handoff note needs."""
     found = {"title": None, "cwd": None, "prompts": [], "recaps": [], "plan": [],
              "files": [], "reply": "", "first": None, "last": None}
-    with transcript.open() as f:
+    with transcript.open(encoding="utf-8") as f:
         for line in f:
             try:
                 record = json.loads(line)
@@ -160,7 +160,7 @@ def write_handoff(transcript: Path) -> Path:
     HANDOFFS.mkdir(parents=True, exist_ok=True)
     day = (found["last"] or datetime.now(timezone.utc).isoformat())[:10]
     target = HANDOFFS / f"{day}-{transcript.stem[:8]}.md"
-    target.write_text(render(transcript, found))
+    target.write_text(render(transcript, found), encoding="utf-8")
     return target
 
 

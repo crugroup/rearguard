@@ -7,7 +7,7 @@ Two promises are tested. When a guard has a reason to act, it says so in the for
 reads. When it is called by anything that does not speak its protocol, or cannot do its job,
 it prints nothing, writes nothing to stderr and exits 0, so it never gets in the way.
 
-Every run gets its own HOME, so no test touches the real ~/.claude.
+Every run gets its own home directory (HOME, and USERPROFILE on Windows), so no test touches the real ~/.claude.
 """
 
 from __future__ import annotations
@@ -36,6 +36,10 @@ class HookCase(unittest.TestCase):
         self.projects = self.home / ".claude" / "projects" / "-some-project"
         self.projects.mkdir(parents=True)
 
+    def home_env(self):
+        """Point the home directory at this test's, on POSIX and on Windows."""
+        return {"HOME": str(self.home), "USERPROFILE": str(self.home)}
+
     def run_hook(self, hook, stdin, scripts=HOOKS, **env):
         """Run a hook as a harness would; return (exit code, stdout, stderr)."""
         if not isinstance(stdin, (str, bytes)):
@@ -44,7 +48,7 @@ class HookCase(unittest.TestCase):
             [sys.executable, str(scripts / hook)],
             input=stdin if isinstance(stdin, bytes) else stdin.encode(),
             capture_output=True,
-            env={**os.environ, "HOME": str(self.home), **env},
+            env={**os.environ, **self.home_env(), **env},
             timeout=30,
         )
         return done.returncode, done.stdout.decode(), done.stderr.decode()
@@ -53,13 +57,14 @@ class HookCase(unittest.TestCase):
         code, out, err = self.run_hook(hook, stdin, **kwargs)
         self.assertEqual((code, out, err), (0, "", ""), f"{hook} on {stdin!r}")
 
-    def transcript(self, session, tokens=200_000, idle=timedelta(hours=2), size=0):
+    def transcript(self, session, tokens=200_000, idle=timedelta(hours=2), size=0,
+                   prompt="Please fix the build"):
         """Write a session transcript whose last request used `tokens` and ended `idle` ago."""
         stamp = (datetime.now(timezone.utc) - idle).isoformat()
         usage = {"input_tokens": tokens, "cache_read_input_tokens": 0}
         lines = [
             {"type": "user", "timestamp": stamp, "cwd": "/work",
-             "message": {"content": "Please fix the build"}},
+             "message": {"content": prompt}},
             {"type": "assistant", "timestamp": stamp,
              "message": {"content": [{"type": "text", "text": "Fixed."}], "usage": usage}},
         ]
@@ -68,7 +73,7 @@ class HookCase(unittest.TestCase):
             filler = {"type": "attachment", "text": "x" * max(0, size - len(raw))}
             raw += json.dumps(filler) + "\n"
         path = self.projects / f"{session}.jsonl"
-        path.write_text(raw)
+        path.write_bytes(raw.encode("utf-8"))  # same bytes on every platform
         return path
 
 
@@ -135,7 +140,7 @@ class ForeignCallerTest(HookCase):
         for hook in BOTH:
             done = subprocess.run(
                 [sys.executable, str(HOOKS / hook)], stdin=subprocess.DEVNULL,
-                capture_output=True, env={**os.environ, "HOME": str(self.home)}, timeout=30,
+                capture_output=True, env={**os.environ, **self.home_env()}, timeout=30,
             )
             self.assertEqual((done.returncode, done.stdout, done.stderr), (0, b"", b""))
 
@@ -143,6 +148,28 @@ class ForeignCallerTest(HookCase):
         code, out, err = self.run_hook(CACHE_GUARD, "not json", REAR_GUARD_DEBUG="1")
         self.assertEqual((code, out), (0, ""))
         self.assertIn("cache-expiry-guard", err)
+
+
+class NonAsciiTest(HookCase):
+    """Text outside ASCII works whatever the platform's default encoding is (cp1252 on Windows)."""
+
+    ASCII_ONLY = {"PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0", "LC_ALL": "C"}
+    PROMPT = "Rénover le café – « ok » 日本語 " + "x" * 2500  # long: the note clips it with "…"
+
+    def test_the_cache_guard_writes_a_note_for_a_non_ascii_session(self):
+        path = self.transcript("live", prompt=self.PROMPT)
+        event = {"transcript_path": str(path), "session_id": "live", "prompt": "Continuons – très bien"}
+        code, out, err = self.run_hook(CACHE_GUARD, event, **self.ASCII_ONLY)
+        self.assertEqual((code, err, json.loads(out)["decision"]), (0, "", "block"))
+        note = next((self.home / ".claude" / "handoffs").glob("*.md"))
+        self.assertIn("Rénover le café", note.read_text(encoding="utf-8"))
+
+    def test_the_archive_guard_writes_a_note_for_a_non_ascii_session(self):
+        path = self.transcript("past-session", prompt=self.PROMPT, size=300_000)
+        event = {"tool_name": "Read", "session_id": "caller", "tool_input": {"file_path": str(path)}}
+        code, out, err = self.run_hook(ARCHIVE_GUARD, event, **self.ASCII_ONLY)
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("deny", out)
 
 
 class CacheExpiryGuardTest(HookCase):
@@ -161,7 +188,7 @@ class CacheExpiryGuardTest(HookCase):
         reason = json.loads(self.prompt(path)[1])["reason"]
         note = next((self.home / ".claude" / "handoffs").glob("*.md"))
         self.assertIn(str(note), reason)
-        self.assertIn("Please fix the build", note.read_text())
+        self.assertIn("Please fix the build", note.read_text(encoding="utf-8"))
 
     def test_resending_after_the_block_continues_the_session(self):
         path = self.transcript("live", idle=timedelta(hours=2))
@@ -189,7 +216,7 @@ class CacheGuardLogTest(HookCase):
         return self.run_hook(CACHE_GUARD, {"transcript_path": str(path), "session_id": session})
 
     def events(self):
-        return [json.loads(line) for line in self.log.read_text().splitlines()]
+        return [json.loads(line) for line in self.log.read_text(encoding="utf-8").splitlines()]
 
     def module(self):
         """Load the guard as a module, with its log pointed at this test's HOME."""
@@ -231,7 +258,7 @@ class CacheGuardLogTest(HookCase):
 
     def test_a_readme_explains_the_log(self):
         self.prompt(self.transcript("live", idle=timedelta(hours=2)))
-        readme = (self.state / "README.md").read_text()
+        readme = (self.state / "README.md").read_text(encoding="utf-8")
         for word in ("`block`", "`override`", "start_cost", "2 * tokens", "25 MiB"):
             self.assertIn(word, readme)
 
@@ -288,7 +315,7 @@ class ArchiveReadGuardTest(HookCase):
         reason = json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"]
         note = next((self.home / ".claude" / "handoffs").glob("*.md"))
         self.assertIn(str(note), reason)
-        self.assertIn("Please fix the build", note.read_text())
+        self.assertIn("Please fix the build", note.read_text(encoding="utf-8"))
 
     def test_repeating_the_read_goes_through(self):
         path = self.past_session()
@@ -309,7 +336,7 @@ class ArchiveReadGuardTest(HookCase):
 
     def test_reading_anything_else_goes_through(self):
         notes = self.home / "notes.md"
-        notes.write_text("hello\n" * 100_000)
+        notes.write_bytes(b"hello\n" * 100_000)
         self.assertEqual(self.read(notes), (0, "", ""))
 
 

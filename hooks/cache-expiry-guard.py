@@ -172,8 +172,8 @@ def log_event(event: dict) -> None:
         if len(line) > MAX_LOG_BYTES // 2:
             return
         STATE_DIR.mkdir(parents=True, exist_ok=True)
-        if not LOG_README.is_file() or LOG_README.read_text() != LOG_README_TEXT:
-            LOG_README.write_text(LOG_README_TEXT)
+        if not LOG_README.is_file() or LOG_README.read_text(encoding="utf-8") != LOG_README_TEXT:
+            LOG_README.write_text(LOG_README_TEXT, encoding="utf-8")
         size = LOG_FILE.stat().st_size if LOG_FILE.exists() else 0
         if size + len(line) > MAX_LOG_BYTES:
             trim_log(MAX_LOG_BYTES // 2)
@@ -221,7 +221,7 @@ def decide(event: dict) -> dict | None:
         marker.unlink()
         log_event({"event": "override", "session_id": caller, "since_block_s": since})
         return None
-    marker.write_text(str(time.time()))
+    marker.write_text(str(time.time()), encoding="utf-8")
     cost, baseline, cached, estimated = start_estimate(transcript)
     log_event({
         "event": "block", "session_id": caller, "tokens": tokens, "idle_s": round(idle),
@@ -252,7 +252,7 @@ def handoff_hint(transcript: Path) -> str:
 def main() -> None:
     """Answer one hook event from stdin; stay silent on anything this guard does not expect."""
     try:
-        output = decide(json.load(sys.stdin))
+        output = decide(json.loads(sys.stdin.buffer.read().decode("utf-8")))
     except Exception as error:  # noqa: BLE001
         # Called by a harness that does not speak this protocol, or a broken guard: never
         # get in the way of the prompt. Say why only when asked to.
