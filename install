@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rear-guard install: symlink the hooks into ~/.claude/hooks/. Registering them in
+# settings.json stays manual; see docs/how-to/install-and-register.md.
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOOKS_DIR="$HOME/.claude/hooks"
+MODE=install
+
+case "${1:-}" in
+  "") ;;
+  --uninstall) MODE=uninstall ;;
+  -h|--help)
+    echo "Usage: ./install [--uninstall]"
+    echo "  Links hooks/*.py into $HOOKS_DIR."
+    echo "  --uninstall removes only the links that point into this repository."
+    exit 0 ;;
+  *) echo "Unknown option: $1" >&2; exit 1 ;;
+esac
+
+chmod +x "$REPO_DIR"/hooks/*.py
+mkdir -p "$HOOKS_DIR"
+skipped=0
+
+for hook in "$REPO_DIR"/hooks/*.py; do
+  name="$(basename "$hook")"
+  target="$HOOKS_DIR/$name"
+  if [ "$MODE" = install ]; then
+    if [ -L "$target" ] || [ ! -e "$target" ]; then
+      ln -snf "$hook" "$target"
+      echo "linked   $target"
+    else
+      echo "skipped  $target (a real file is there; remove it first)" >&2
+      skipped=1
+    fi
+  elif [ -L "$target" ] && [ "$(readlink "$target")" = "$hook" ]; then
+    rm "$target"
+    echo "removed  $target"
+  fi
+done
+
+if [ "$MODE" = install ]; then
+  echo
+  echo "Next: register the two guards in ~/.claude/settings.json, then restart Claude Code."
+  echo "      See docs/how-to/install-and-register.md."
+fi
+exit "$skipped"
